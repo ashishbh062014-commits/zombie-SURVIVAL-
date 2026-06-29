@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Zombie Survival</title>
+<style>
+body{margin:0;background:#222;overflow:hidden;}
+canvas{display:block;margin:auto;background:#3a5f3a;}
+</style>
+</head>
+<body>
+<canvas id="game" width="900" height="600"></canvas>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+const player={
+x:450,y:300,size:20,speed:4,hp:100
+};
+
+let bullets=[];
+let zombies=[];
+let keys={};
+let score=0;
+let wave=1;
+
+document.addEventListener("keydown",e=>keys[e.key.toLowerCase()]=true);
+document.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
+
+canvas.onclick=e=>{
+const r=canvas.getBoundingClientRect();
+const mx=e.clientX-r.left;
+const my=e.clientY-r.top;
+const dx=mx-player.x;
+const dy=my-player.y;
+const d=Math.hypot(dx,dy);
+bullets.push({
+x:player.x,
+y:player.y,
+vx:dx/d*8,
+vy:dy/d*8
+});
+};
+
+function spawnWave(){
+for(let i=0;i<wave*4;i++){
+let side=Math.floor(Math.random()*4);
+let x,y;
+if(side===0){x=0;y=Math.random()*600;}
+if(side===1){x=900;y=Math.random()*600;}
+if(side===2){x=Math.random()*900;y=0;}
+if(side===3){x=Math.random()*900;y=600;}
+
+zombies.push({
+x,y,
+hp:2+wave
+});
+}
+}
+
+spawnWave();
+
+function update(){
+
+if(keys["w"])player.y-=player.speed;
+if(keys["s"])player.y+=player.speed;
+if(keys["a"])player.x-=player.speed;
+if(keys["d"])player.x+=player.speed;
+
+player.x=Math.max(15,Math.min(885,player.x));
+player.y=Math.max(15,Math.min(585,player.y));
+
+for(let b=bullets.length-1;b>=0;b--){
+bullets[b].x+=bullets[b].vx;
+bullets[b].y+=bullets[b].vy;
+
+if(bullets[b].x<0||bullets[b].x>900||bullets[b].y<0||bullets[b].y>600)
+bullets.splice(b,1);
+}
+
+for(let z=zombies.length-1;z>=0;z--){
+let zo=zombies[z];
+let dx=player.x-zo.x;
+let dy=player.y-zo.y;
+let d=Math.hypot(dx,dy);
+
+zo.x+=dx/d*1.2;
+zo.y+=dy/d*1.2;
+
+if(d<20){
+player.hp-=0.15;
+}
+
+for(let b=bullets.length-1;b>=0;b--){
+let dd=Math.hypot(bullets[b].x-zo.x,bullets[b].y-zo.y);
+if(dd<18){
+zo.hp--;
+bullets.splice(b,1);
+if(zo.hp<=0){
+zombies.splice(z,1);
+score+=10;
+}
+break;
+}
+}
+}
+
+if(zombies.length===0){
+wave++;
+spawnWave();
+}
+
+}
+
+function draw(){
+
+ctx.clearRect(0,0,900,600);
+
+ctx.fillStyle="green";
+ctx.beginPath();
+ctx.arc(player.x,player.y,15,0,Math.PI*2);
+ctx.fill();
+
+ctx.fillStyle="yellow";
+for(let b of bullets){
+ctx.beginPath();
+ctx.arc(b.x,b.y,4,0,Math.PI*2);
+ctx.fill();
+}
+
+ctx.fillStyle="red";
+for(let z of zombies){
+ctx.beginPath();
+ctx.arc(z.x,z.y,15,0,Math.PI*2);
+ctx.fill();
+}
+
+ctx.fillStyle="white";
+ctx.font="20px Arial";
+ctx.fillText("HP: "+Math.floor(player.hp),10,25);
+ctx.fillText("Score: "+score,10,50);
+ctx.fillText("Wave: "+wave,10,75);
+
+if(player.hp<=0){
+ctx.fillStyle="rgba(0,0,0,.7)";
+ctx.fillRect(0,0,900,600);
+ctx.fillStyle="white";
+ctx.font="60px Arial";
+ctx.fillText("GAME OVER",260,300);
+return;
+}
+
+requestAnimationFrame(loop);
+}
+
+function loop(){
+update();
+draw();
+}
+
+loop();
+</script>
+</body>
+</html>
